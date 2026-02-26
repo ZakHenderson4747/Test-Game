@@ -140,6 +140,13 @@ canvas {
   gap: 0.6rem;
 }
 
+.control-heading {
+  margin: 0.2rem 0 -0.1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .control-row {
   display: flex;
   flex-wrap: wrap;
@@ -148,7 +155,8 @@ canvas {
 }
 
 button,
-select {
+select,
+input[type='color'] {
   border: 1px solid transparent;
   border-radius: 8px;
   background: var(--panel-2);
@@ -157,10 +165,18 @@ select {
   cursor: pointer;
 }
 
+input[type='color'] {
+  width: 2.4rem;
+  height: 2.1rem;
+  padding: 0.15rem;
+}
+
 button:hover,
 select:hover,
+input[type='color']:hover,
 button:focus-visible,
-select:focus-visible {
+select:focus-visible,
+input[type='color']:focus-visible {
   outline: none;
   border-color: var(--accent);
 }

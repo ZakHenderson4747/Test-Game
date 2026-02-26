@@ -38,16 +38,28 @@ Then open `http://localhost:8000`.
 ## UI / Modes / Toggles
 
 - **Score**: Current run points
-- **High Score**: Persisted using `localStorage`
+- **High Score**: Persisted using `localStorage` where available
 - **Tick (ms)**: Current movement interval
 - **Wrap mode**: Switch between walls and wrap-around edges
 - **Speed scaling**: If enabled, speed increases as score grows
-- **Difficulty**: Easy / Normal / Hard base speed
+- **Difficulty**: Easy / Normal / Hard / Expert / Insane base speed
 - **Audio**: Enables generated WebAudio SFX for eat and game over
 - **Light theme**: Toggle between dark and light color themes
+
+## Snake Cosmetics (pre-game or in-game)
+
+- **Shape**: Block, Rounded, or Diamond segment style
+- **Body color**: Pick any snake body color with a color picker
+- **Head style**:
+  - Auto (darker head)
+  - Match body
+  - Brighter head
+
+These cosmetic settings are intended to let you personalize the snake before starting each run.
 
 ## Notes
 
 - Direction reversal is prevented (you cannot instantly move into the opposite direction).
 - Input is buffered to allow at most one direction change per movement tick for consistency.
 - Overlays are shown for START, PAUSED, GAME OVER, and WIN states.
+- The app now gracefully handles restricted environments where `localStorage` or WebAudio may be unavailable.

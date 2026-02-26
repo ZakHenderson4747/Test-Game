@@ -5,8 +5,10 @@ const BASE_TICK_MS_BY_DIFFICULTY = {
   easy: 180,
   normal: 140,
   hard: 110,
+  expert: 90,
+  insane: 75,
 };
-const MIN_TICK_MS = 70;
+const MIN_TICK_MS = 55;
 const SPEED_STEP_MS = 4;
 const STORAGE_KEY_HIGH_SCORE = 'snake-high-score';
 
@@ -66,6 +68,9 @@ const speedScaleToggle = document.getElementById('speedScaleToggle');
 const difficultySelect = document.getElementById('difficultySelect');
 const audioToggle = document.getElementById('audioToggle');
 const themeToggle = document.getElementById('themeToggle');
+const snakeStyleSelect = document.getElementById('snakeStyleSelect');
+const snakeColorInput = document.getElementById('snakeColorInput');
+const headStyleSelect = document.getElementById('headStyleSelect');
 
 let state = STATES.START;
 let snake = [];
@@ -74,7 +79,7 @@ let bufferedDirection = null;
 let hasBufferedThisTick = false;
 let food = null;
 let score = 0;
-let highScore = Number(localStorage.getItem(STORAGE_KEY_HIGH_SCORE) || 0);
+let highScore = loadHighScore();
 let accumulator = 0;
 let lastFrameTime = performance.now();
 let wrapMode = false;
@@ -83,13 +88,46 @@ let difficulty = 'normal';
 let audioEnabled = true;
 let tickMs = BASE_TICK_MS_BY_DIFFICULTY[difficulty];
 
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let snakeStyle = 'block';
+let snakeBodyColor = '#71f2b5';
+let headColorMode = 'auto';
+
+let audioContext = null;
+
+function loadHighScore() {
+  try {
+    return Number(localStorage.getItem(STORAGE_KEY_HIGH_SCORE) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function saveHighScore(value) {
+  try {
+    localStorage.setItem(STORAGE_KEY_HIGH_SCORE, String(value));
+  } catch {
+    // Ignore storage write failures on restricted file:// contexts.
+  }
+}
+
+function ensureAudioContext() {
+  if (audioContext) return audioContext;
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  } catch {
+    audioContext = null;
+  }
+  return audioContext;
+}
 
 function playTone(frequency, duration = 0.08, type = 'square', gainValue = 0.04) {
   if (!audioEnabled) return;
-  const now = audioContext.currentTime;
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
 
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, now);
@@ -98,7 +136,7 @@ function playTone(frequency, duration = 0.08, type = 'square', gainValue = 0.04)
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
   oscillator.connect(gain);
-  gain.connect(audioContext.destination);
+  gain.connect(context.destination);
 
   oscillator.start(now);
   oscillator.stop(now + duration);
@@ -112,8 +150,44 @@ function playGameOverSound() {
   playTone(180, 0.23, 'sawtooth', 0.05);
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return { r: 113, g: 242, b: 181 };
+
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex({ r, g, b }) {
+  const toHex = (channel) => clamp(channel, 0, 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function tintColor(hex, amount) {
+  const rgb = hexToRgb(hex);
+  const apply = (value) => clamp(Math.round(value + amount), 0, 255);
+  return rgbToHex({
+    r: apply(rgb.r),
+    g: apply(rgb.g),
+    b: apply(rgb.b),
+  });
+}
+
+function getHeadColor() {
+  if (headColorMode === 'same') return snakeBodyColor;
+  if (headColorMode === 'bright') return tintColor(snakeBodyColor, 44);
+  return tintColor(snakeBodyColor, -50);
+}
+
 function updateTickMs() {
-  const base = BASE_TICK_MS_BY_DIFFICULTY[difficulty];
+  const base = BASE_TICK_MS_BY_DIFFICULTY[difficulty] || BASE_TICK_MS_BY_DIFFICULTY.normal;
   if (!speedScalingEnabled) {
     tickMs = base;
   } else {
@@ -207,7 +281,7 @@ function updateScoreUI() {
 function saveHighScoreIfNeeded() {
   if (score > highScore) {
     highScore = score;
-    localStorage.setItem(STORAGE_KEY_HIGH_SCORE, String(highScore));
+    saveHighScore(highScore);
     highScoreEl.textContent = String(highScore);
   }
 }
@@ -279,7 +353,6 @@ function step() {
     };
   }
 
-  // Tail may move away, so collision check should ignore last segment unless eating.
   const isEating = food && nextHead.x === food.x && nextHead.y === food.y;
   const tail = snake[snake.length - 1];
   if (!isEating && tail.x === nextHead.x && tail.y === nextHead.y) {
@@ -328,12 +401,59 @@ function drawGrid() {
   }
 }
 
+function drawDiamond(cx, cy, halfSize) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - halfSize);
+  ctx.lineTo(cx + halfSize, cy);
+  ctx.lineTo(cx, cy + halfSize);
+  ctx.lineTo(cx - halfSize, cy);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawRoundedRect(x, y, size, radius) {
+  const r = Math.min(radius, size / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + size - r, y);
+  ctx.quadraticCurveTo(x + size, y, x + size, y + r);
+  ctx.lineTo(x + size, y + size - r);
+  ctx.quadraticCurveTo(x + size, y + size, x + size - r, y + size);
+  ctx.lineTo(x + r, y + size);
+  ctx.quadraticCurveTo(x, y + size, x, y + size - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSnakeSegment(segment, color, isHead) {
+  ctx.fillStyle = color;
+
+  const x = segment.x * CELL_SIZE + 1;
+  const y = segment.y * CELL_SIZE + 1;
+  const size = CELL_SIZE - 2;
+
+  if (snakeStyle === 'rounded') {
+    drawRoundedRect(x, y, size, isHead ? 7 : 5);
+    return;
+  }
+
+  if (snakeStyle === 'diamond') {
+    const cx = segment.x * CELL_SIZE + CELL_SIZE / 2;
+    const cy = segment.y * CELL_SIZE + CELL_SIZE / 2;
+    drawDiamond(cx, cy, isHead ? CELL_SIZE * 0.47 : CELL_SIZE * 0.42);
+    return;
+  }
+
+  ctx.fillRect(x, y, size, size);
+}
+
 function draw() {
   const css = getComputedStyle(document.documentElement);
   const panel = css.getPropertyValue('--panel-2').trim();
-  const snakeColor = css.getPropertyValue('--snake').trim();
-  const snakeHeadColor = css.getPropertyValue('--snake-head').trim();
   const foodColor = css.getPropertyValue('--food').trim();
+  const snakeHeadColor = getHeadColor();
 
   ctx.fillStyle = panel;
   ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
@@ -341,8 +461,7 @@ function draw() {
   drawGrid();
 
   snake.forEach((segment, index) => {
-    ctx.fillStyle = index === 0 ? snakeHeadColor : snakeColor;
-    ctx.fillRect(segment.x * CELL_SIZE + 1, segment.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+    drawSnakeSegment(segment, index === 0 ? snakeHeadColor : snakeBodyColor, index === 0);
   });
 
   if (food) {
@@ -433,13 +552,26 @@ function bindUI() {
 
   audioToggle.addEventListener('change', (event) => {
     audioEnabled = event.target.checked;
-    if (audioEnabled && audioContext.state === 'suspended') {
-      audioContext.resume();
+    const context = ensureAudioContext();
+    if (audioEnabled && context && context.state === 'suspended') {
+      context.resume();
     }
   });
 
   themeToggle.addEventListener('change', (event) => {
     document.documentElement.setAttribute('data-theme', event.target.checked ? 'light' : 'dark');
+  });
+
+  snakeStyleSelect.addEventListener('change', (event) => {
+    snakeStyle = event.target.value;
+  });
+
+  snakeColorInput.addEventListener('input', (event) => {
+    snakeBodyColor = event.target.value || '#71f2b5';
+  });
+
+  headStyleSelect.addEventListener('change', (event) => {
+    headColorMode = event.target.value;
   });
 
   document.querySelectorAll('.dpad button[data-dir]').forEach((button) => {

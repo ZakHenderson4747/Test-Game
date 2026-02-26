@@ -33,6 +33,7 @@
           <button id="restartBtn" type="button">Restart (R)</button>
         </div>
 
+        <h2 class="control-heading">Game Options</h2>
         <div class="control-row toggles">
           <label><input id="wrapToggle" type="checkbox" /> Wrap mode</label>
           <label><input id="speedScaleToggle" type="checkbox" checked /> Speed scaling</label>
@@ -42,10 +43,36 @@
               <option value="easy">Easy</option>
               <option value="normal" selected>Normal</option>
               <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+              <option value="insane">Insane</option>
             </select>
           </label>
           <label><input id="audioToggle" type="checkbox" checked /> Audio</label>
           <label><input id="themeToggle" type="checkbox" /> Light theme</label>
+        </div>
+
+        <h2 class="control-heading">Snake Cosmetics</h2>
+        <div class="control-row cosmetics" aria-label="Snake cosmetics">
+          <label>
+            Shape
+            <select id="snakeStyleSelect">
+              <option value="block" selected>Block</option>
+              <option value="rounded">Rounded</option>
+              <option value="diamond">Diamond</option>
+            </select>
+          </label>
+          <label>
+            Body color
+            <input id="snakeColorInput" type="color" value="#71f2b5" />
+          </label>
+          <label>
+            Head style
+            <select id="headStyleSelect">
+              <option value="auto" selected>Auto (darker)</option>
+              <option value="same">Match body</option>
+              <option value="bright">Brighter head</option>
+            </select>
+          </label>
         </div>
       </section>
 
