@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snakes On a Window</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Snake game">
+      <header class="top-bar">
+        <h1>Snakes On a Window</h1>
+        <div class="top-actions">
+          <button id="fullscreenBtn" class="icon-btn" type="button" aria-label="Toggle fullscreen" title="Toggle fullscreen">⛶</button>
+          <button id="optionsBtn" class="icon-btn" type="button" aria-label="Open options (M)" title="Open options (M)">⚙</button>
+        </div>
+      </header>
+
+      <section class="hud" aria-live="polite">
+        <div><span class="label">Score</span><strong id="score">0</strong></div>
+        <div><span class="label">High Score</span><strong id="highScore">0</strong></div>
+        <div><span class="label">Tick</span><strong id="speed">150 ms</strong></div>
+      </section>
+
+      <section class="board-wrap">
+        <canvas id="gameCanvas" width="480" height="480" aria-label="Snake board"></canvas>
+        <div id="overlay" class="overlay">
+          <h2 id="overlayTitle">Press Space to Start</h2>
+          <p id="overlayText">Arrow keys / WASD to move. R to restart. M for options.</p>
+        </div>
+      </section>
+
+      <aside id="optionsPanel" class="options-panel" aria-label="Game options" aria-hidden="true">
+        <div class="options-header">
+          <h2>Game Menu</h2>
+          <button id="closeOptionsBtn" type="button">Close</button>
+        </div>
+
+        <div class="control-row buttons">
+          <button id="startPauseBtn" type="button">Start / Pause (Space)</button>
+          <button id="restartBtn" type="button">Restart (R)</button>
+        </div>
+
+        <h3 class="control-heading">Game Options</h3>
+        <div class="control-row toggles">
+          <label><input id="wrapToggle" type="checkbox" /> Wrap mode</label>
+          <label><input id="barrierToggle" type="checkbox" /> Barrier mode</label>
+          <label>
+            Barrier density
+            <select id="barrierDensitySelect">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label><input id="speedScaleToggle" type="checkbox" checked /> Speed scaling</label>
+          <label>
+            Difficulty
+            <select id="difficultySelect">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+              <option value="insane">Insane</option>
+            </select>
+          </label>
+          <label><input id="audioToggle" type="checkbox" checked /> Audio</label>
+          <label><input id="themeToggle" type="checkbox" /> Light theme</label>
+        </div>
+
+        <h3 class="control-heading">Snake Cosmetics</h3>
+        <div class="control-row cosmetics" aria-label="Snake cosmetics">
+          <label>
+            Shape
+            <select id="snakeStyleSelect">
+              <option value="block" selected>Block</option>
+              <option value="rounded">Rounded</option>
+              <option value="diamond">Diamond</option>
+            </select>
+          </label>
+          <label>
+            Body color
+            <input id="snakeColorInput" type="color" value="#71f2b5" />
+          </label>
+          <label>
+            Head style
+            <select id="headStyleSelect">
+              <option value="auto" selected>Auto (darker)</option>
+              <option value="same">Match body</option>
+              <option value="bright">Brighter head</option>
+            </select>
+          </label>
+        </div>
+      </aside>
+
+      <section class="dpad" aria-label="Touch controls">
+        <button data-dir="up" type="button">▲</button>
+        <div class="dpad-middle">
+          <button data-dir="left" type="button">◀</button>
+          <button data-dir="down" type="button">▼</button>
+          <button data-dir="right" type="button">▶</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
