@@ -54,6 +54,7 @@ const KEY_TO_DIRECTION = {
   D: 'right',
 };
 
+const appEl = document.querySelector('.app');
 const canvas = document.getElementById('gameCanvas');
 canvas.width = BOARD_SIZE;
 canvas.height = BOARD_SIZE;
@@ -66,6 +67,7 @@ const overlayEl = document.getElementById('overlay');
 const overlayTitleEl = document.getElementById('overlayTitle');
 const overlayTextEl = document.getElementById('overlayText');
 
+const fullscreenBtn = document.getElementById('fullscreenBtn');
 const optionsBtn = document.getElementById('optionsBtn');
 const optionsPanel = document.getElementById('optionsPanel');
 const closeOptionsBtn = document.getElementById('closeOptionsBtn');
@@ -208,6 +210,26 @@ function setOptionsOpen(isOpen) {
 
 function toggleOptionsMenu() {
   setOptionsOpen(!optionsOpen);
+}
+
+function syncFullscreenButton() {
+  const isFullscreen = document.fullscreenElement === appEl;
+  fullscreenBtn.textContent = isFullscreen ? '🗗' : '⛶';
+  fullscreenBtn.setAttribute('aria-label', isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen');
+  fullscreenBtn.setAttribute('title', isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen');
+}
+
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement === appEl) {
+      await document.exitFullscreen();
+    } else {
+      await appEl.requestFullscreen();
+    }
+  } catch {
+    // Ignore fullscreen errors caused by browser restrictions.
+  }
+  syncFullscreenButton();
 }
 
 function updateTickMs() {
@@ -556,6 +578,12 @@ function handleKeyDown(event) {
     return;
   }
 
+  if (event.key === 'f' || event.key === 'F') {
+    event.preventDefault();
+    toggleFullscreen();
+    return;
+  }
+
   if (event.key === ' ' || event.code === 'Space') {
     event.preventDefault();
     toggleStartPause();
@@ -583,6 +611,9 @@ function handleKeyDown(event) {
 
 function bindUI() {
   document.addEventListener('keydown', handleKeyDown);
+
+  fullscreenBtn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', syncFullscreenButton);
 
   optionsBtn.addEventListener('click', toggleOptionsMenu);
   closeOptionsBtn.addEventListener('click', () => setOptionsOpen(false));
@@ -673,6 +704,7 @@ function init() {
   updateScoreUI();
   updateTickMs();
   bindUI();
+  syncFullscreenButton();
   resetGame();
   draw();
   requestAnimationFrame(gameLoop);

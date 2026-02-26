@@ -23,6 +23,7 @@ Then open `http://localhost:8000`.
 - **Space**: Start / Pause / Resume
 - **R**: Restart immediately
 - **M**: Open/close the options menu
+- **F**: Toggle fullscreen
 
 ### Touch / Mobile
 - Use the on-screen D-pad buttons (Up / Down / Left / Right).
@@ -43,7 +44,8 @@ To reduce clutter, only these are always visible:
 - **High Score**
 - **Tick (ms)**
 
-Everything else is grouped into a single **Game Menu** that opens from the **Options (M)** button or by pressing **M**.
+Everything else is grouped into a single **Game Menu** that opens from the **⚙ settings button** or by pressing **M**.
+You can fullscreen the game container from the **⛶ fullscreen button** or by pressing **F**.
 
 ## Game Menu Features
 
