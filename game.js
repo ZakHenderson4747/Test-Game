@@ -8,6 +8,11 @@ const BASE_TICK_MS_BY_DIFFICULTY = {
   expert: 90,
   insane: 75,
 };
+const BARRIER_COUNT_BY_DENSITY = {
+  low: 14,
+  medium: 24,
+  high: 36,
+};
 const MIN_TICK_MS = 55;
 const SPEED_STEP_MS = 4;
 const STORAGE_KEY_HIGH_SCORE = 'snake-high-score';
@@ -61,9 +66,14 @@ const overlayEl = document.getElementById('overlay');
 const overlayTitleEl = document.getElementById('overlayTitle');
 const overlayTextEl = document.getElementById('overlayText');
 
+const optionsBtn = document.getElementById('optionsBtn');
+const optionsPanel = document.getElementById('optionsPanel');
+const closeOptionsBtn = document.getElementById('closeOptionsBtn');
 const startPauseBtn = document.getElementById('startPauseBtn');
 const restartBtn = document.getElementById('restartBtn');
 const wrapToggle = document.getElementById('wrapToggle');
+const barrierToggle = document.getElementById('barrierToggle');
+const barrierDensitySelect = document.getElementById('barrierDensitySelect');
 const speedScaleToggle = document.getElementById('speedScaleToggle');
 const difficultySelect = document.getElementById('difficultySelect');
 const audioToggle = document.getElementById('audioToggle');
@@ -78,11 +88,14 @@ let direction = 'right';
 let bufferedDirection = null;
 let hasBufferedThisTick = false;
 let food = null;
+let barriers = [];
 let score = 0;
 let highScore = loadHighScore();
 let accumulator = 0;
 let lastFrameTime = performance.now();
 let wrapMode = false;
+let barrierModeEnabled = false;
+let barrierDensity = 'medium';
 let speedScalingEnabled = true;
 let difficulty = 'normal';
 let audioEnabled = true;
@@ -91,6 +104,7 @@ let tickMs = BASE_TICK_MS_BY_DIFFICULTY[difficulty];
 let snakeStyle = 'block';
 let snakeBodyColor = '#71f2b5';
 let headColorMode = 'auto';
+let optionsOpen = false;
 
 let audioContext = null;
 
@@ -186,13 +200,19 @@ function getHeadColor() {
   return tintColor(snakeBodyColor, -50);
 }
 
+function setOptionsOpen(isOpen) {
+  optionsOpen = isOpen;
+  optionsPanel.classList.toggle('open', optionsOpen);
+  optionsPanel.setAttribute('aria-hidden', String(!optionsOpen));
+}
+
+function toggleOptionsMenu() {
+  setOptionsOpen(!optionsOpen);
+}
+
 function updateTickMs() {
   const base = BASE_TICK_MS_BY_DIFFICULTY[difficulty] || BASE_TICK_MS_BY_DIFFICULTY.normal;
-  if (!speedScalingEnabled) {
-    tickMs = base;
-  } else {
-    tickMs = Math.max(MIN_TICK_MS, base - score * SPEED_STEP_MS);
-  }
+  tickMs = speedScalingEnabled ? Math.max(MIN_TICK_MS, base - score * SPEED_STEP_MS) : base;
   speedEl.textContent = `${tickMs} ms`;
 }
 
@@ -200,8 +220,36 @@ function isCellOccupied(x, y) {
   return snake.some((segment) => segment.x === x && segment.y === y);
 }
 
+function isBarrierCell(x, y) {
+  return barriers.some((barrier) => barrier.x === x && barrier.y === y);
+}
+
+function rebuildBarriers() {
+  barriers = [];
+  if (!barrierModeEnabled) return;
+
+  const desiredCount = BARRIER_COUNT_BY_DENSITY[barrierDensity] || BARRIER_COUNT_BY_DENSITY.medium;
+  const blocked = new Set(snake.map((segment) => `${segment.x},${segment.y}`));
+  const candidates = [];
+
+  for (let y = 0; y < GRID_SIZE; y += 1) {
+    for (let x = 0; x < GRID_SIZE; x += 1) {
+      if (!blocked.has(`${x},${y}`)) {
+        candidates.push({ x, y });
+      }
+    }
+  }
+
+  for (let i = candidates.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+
+  barriers = candidates.slice(0, desiredCount);
+}
+
 function spawnFood() {
-  if (snake.length >= GRID_SIZE * GRID_SIZE) {
+  if (snake.length + barriers.length >= GRID_SIZE * GRID_SIZE) {
     food = null;
     setState(STATES.WIN);
     return;
@@ -210,7 +258,7 @@ function spawnFood() {
   const emptyCells = [];
   for (let y = 0; y < GRID_SIZE; y += 1) {
     for (let x = 0; x < GRID_SIZE; x += 1) {
-      if (!isCellOccupied(x, y)) {
+      if (!isCellOccupied(x, y) && !isBarrierCell(x, y)) {
         emptyCells.push({ x, y });
       }
     }
@@ -221,17 +269,13 @@ function spawnFood() {
 }
 
 function checkCollision(nextHead) {
-  if (wrapMode) {
-    return snake.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+  if (!wrapMode) {
+    const outOfBounds =
+      nextHead.x < 0 || nextHead.x >= GRID_SIZE || nextHead.y < 0 || nextHead.y >= GRID_SIZE;
+    if (outOfBounds) return true;
   }
 
-  const outOfBounds =
-    nextHead.x < 0 ||
-    nextHead.x >= GRID_SIZE ||
-    nextHead.y < 0 ||
-    nextHead.y >= GRID_SIZE;
-
-  if (outOfBounds) return true;
+  if (isBarrierCell(nextHead.x, nextHead.y)) return true;
 
   return snake.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
 }
@@ -247,7 +291,7 @@ function setState(nextState) {
   switch (state) {
     case STATES.START:
       overlayTitleEl.textContent = 'Press Space to Start';
-      overlayTextEl.textContent = 'Arrow keys / WASD to move • R to restart';
+      overlayTextEl.textContent = 'Arrow keys / WASD to move • R to restart • M for options';
       startPauseBtn.textContent = 'Start (Space)';
       break;
     case STATES.PAUSED:
@@ -298,6 +342,7 @@ function resetGame() {
   hasBufferedThisTick = false;
   score = 0;
   accumulator = 0;
+  rebuildBarriers();
   updateTickMs();
   spawnFood();
   updateScoreUI();
@@ -306,10 +351,7 @@ function resetGame() {
 
 function queueDirection(nextDirection) {
   const currentDirection = bufferedDirection || direction;
-  if (OPPOSITES[currentDirection] === nextDirection) {
-    return;
-  }
-  if (hasBufferedThisTick) {
+  if (OPPOSITES[currentDirection] === nextDirection || hasBufferedThisTick) {
     return;
   }
   bufferedDirection = nextDirection;
@@ -341,10 +383,7 @@ function step() {
   applyBufferedDirection();
 
   const vector = DIRECTION_VECTORS[direction];
-  let nextHead = {
-    x: snake[0].x + vector.x,
-    y: snake[0].y + vector.y,
-  };
+  let nextHead = { x: snake[0].x + vector.x, y: snake[0].y + vector.y };
 
   if (wrapMode) {
     nextHead = {
@@ -355,8 +394,9 @@ function step() {
 
   const isEating = food && nextHead.x === food.x && nextHead.y === food.y;
   const tail = snake[snake.length - 1];
+
   if (!isEating && tail.x === nextHead.x && tail.y === nextHead.y) {
-    // Moving into current tail cell is safe because tail vacates this tick.
+    // Tail vacates this cell.
   } else if (checkCollision(nextHead)) {
     playGameOverSound();
     saveHighScoreIfNeeded();
@@ -449,6 +489,18 @@ function drawSnakeSegment(segment, color, isHead) {
   ctx.fillRect(x, y, size, size);
 }
 
+function drawBarriers() {
+  const barrierColor = getComputedStyle(document.documentElement).getPropertyValue('--barrier').trim();
+  ctx.fillStyle = barrierColor || '#76829a';
+
+  barriers.forEach((barrier) => {
+    const x = barrier.x * CELL_SIZE + 3;
+    const y = barrier.y * CELL_SIZE + 3;
+    const size = CELL_SIZE - 6;
+    drawRoundedRect(x, y, size, 3);
+  });
+}
+
 function draw() {
   const css = getComputedStyle(document.documentElement);
   const panel = css.getPropertyValue('--panel-2').trim();
@@ -459,6 +511,7 @@ function draw() {
   ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
   drawGrid();
+  drawBarriers();
 
   snake.forEach((segment, index) => {
     drawSnakeSegment(segment, index === 0 ? snakeHeadColor : snakeBodyColor, index === 0);
@@ -497,6 +550,12 @@ function gameLoop(now) {
 function handleKeyDown(event) {
   const directionFromKey = KEY_TO_DIRECTION[event.key];
 
+  if (event.key === 'm' || event.key === 'M') {
+    event.preventDefault();
+    toggleOptionsMenu();
+    return;
+  }
+
   if (event.key === ' ' || event.code === 'Space') {
     event.preventDefault();
     toggleStartPause();
@@ -509,9 +568,7 @@ function handleKeyDown(event) {
     return;
   }
 
-  if (!directionFromKey) {
-    return;
-  }
+  if (!directionFromKey) return;
 
   event.preventDefault();
 
@@ -527,9 +584,10 @@ function handleKeyDown(event) {
 function bindUI() {
   document.addEventListener('keydown', handleKeyDown);
 
-  startPauseBtn.addEventListener('click', () => {
-    toggleStartPause();
-  });
+  optionsBtn.addEventListener('click', toggleOptionsMenu);
+  closeOptionsBtn.addEventListener('click', () => setOptionsOpen(false));
+
+  startPauseBtn.addEventListener('click', toggleStartPause);
 
   restartBtn.addEventListener('click', () => {
     resetGame();
@@ -538,6 +596,18 @@ function bindUI() {
 
   wrapToggle.addEventListener('change', (event) => {
     wrapMode = event.target.checked;
+  });
+
+  barrierToggle.addEventListener('change', (event) => {
+    barrierModeEnabled = event.target.checked;
+    resetGame();
+  });
+
+  barrierDensitySelect.addEventListener('change', (event) => {
+    barrierDensity = event.target.value;
+    if (barrierModeEnabled) {
+      resetGame();
+    }
   });
 
   speedScaleToggle.addEventListener('change', (event) => {

@@ -1,4 +1,4 @@
-# Snake (Browser, Single Player)
+# Snakes On a Window
 
 A lightweight Snake game built with plain HTML, CSS, and JavaScript. It runs directly in the browser with no backend or build step.
 
@@ -22,6 +22,7 @@ Then open `http://localhost:8000`.
 - **Arrow keys** or **WASD**: Move snake
 - **Space**: Start / Pause / Resume
 - **R**: Restart immediately
+- **M**: Open/close the options menu
 
 ### Touch / Mobile
 - Use the on-screen D-pad buttons (Up / Down / Left / Right).
@@ -35,31 +36,37 @@ Then open `http://localhost:8000`.
 - You lose on collision with wall or self (unless wrap mode is enabled).
 - If the snake fills the entire board, you win.
 
-## UI / Modes / Toggles
+## Main UI
 
-- **Score**: Current run points
-- **High Score**: Persisted using `localStorage` where available
-- **Tick (ms)**: Current movement interval
-- **Wrap mode**: Switch between walls and wrap-around edges
-- **Speed scaling**: If enabled, speed increases as score grows
-- **Difficulty**: Easy / Normal / Hard / Expert / Insane base speed
-- **Audio**: Enables generated WebAudio SFX for eat and game over
-- **Light theme**: Toggle between dark and light color themes
+To reduce clutter, only these are always visible:
+- **Score**
+- **High Score**
+- **Tick (ms)**
 
-## Snake Cosmetics (pre-game or in-game)
+Everything else is grouped into a single **Game Menu** that opens from the **Options (M)** button or by pressing **M**.
 
-- **Shape**: Block, Rounded, or Diamond segment style
-- **Body color**: Pick any snake body color with a color picker
-- **Head style**:
-  - Auto (darker head)
-  - Match body
-  - Brighter head
+## Game Menu Features
 
-These cosmetic settings are intended to let you personalize the snake before starting each run.
+- Start/Pause and Restart buttons
+- Wrap mode toggle
+- Barrier mode toggle
+- Barrier density selector (Low / Medium / High)
+- Speed scaling toggle
+- Difficulty selector (Easy / Normal / Hard / Expert / Insane)
+- Audio toggle
+- Light theme toggle
+- Snake cosmetics:
+  - Shape (Block / Rounded / Diamond)
+  - Body color picker
+  - Head style (Auto darker / Match body / Brighter)
+
+## Barrier Mode
+
+Barrier Mode is supported. When enabled, random barrier objects spawn at the start of each run and act as lethal obstacles. They remain fixed for the match and are regenerated on restart (or when barrier settings change).
 
 ## Notes
 
 - Direction reversal is prevented (you cannot instantly move into the opposite direction).
 - Input is buffered to allow at most one direction change per movement tick for consistency.
 - Overlays are shown for START, PAUSED, GAME OVER, and WIN states.
-- The app now gracefully handles restricted environments where `localStorage` or WebAudio may be unavailable.
+- The app gracefully handles restricted environments where `localStorage` or WebAudio may be unavailable.
