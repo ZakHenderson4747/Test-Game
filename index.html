@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Snake game">
+      <header class="top-bar">
+        <h1>Snake</h1>
+        <p class="subtitle">Single-player canvas snake</p>
+      </header>
+
+      <section class="hud" aria-live="polite">
+        <div><span class="label">Score</span><strong id="score">0</strong></div>
+        <div><span class="label">High Score</span><strong id="highScore">0</strong></div>
+        <div><span class="label">Tick</span><strong id="speed">150 ms</strong></div>
+      </section>
+
+      <section class="board-wrap">
+        <canvas id="gameCanvas" width="480" height="480" aria-label="Snake board"></canvas>
+        <div id="overlay" class="overlay">
+          <h2 id="overlayTitle">Press Space to Start</h2>
+          <p id="overlayText">Arrow keys / WASD to move. R to restart.</p>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Game controls">
+        <div class="control-row buttons">
+          <button id="startPauseBtn" type="button">Start / Pause (Space)</button>
+          <button id="restartBtn" type="button">Restart (R)</button>
+        </div>
+
+        <div class="control-row toggles">
+          <label><input id="wrapToggle" type="checkbox" /> Wrap mode</label>
+          <label><input id="speedScaleToggle" type="checkbox" checked /> Speed scaling</label>
+          <label>
+            Difficulty
+            <select id="difficultySelect">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+          <label><input id="audioToggle" type="checkbox" checked /> Audio</label>
+          <label><input id="themeToggle" type="checkbox" /> Light theme</label>
+        </div>
+      </section>
+
+      <section class="dpad" aria-label="Touch controls">
+        <button data-dir="up" type="button">▲</button>
+        <div class="dpad-middle">
+          <button data-dir="left" type="button">◀</button>
+          <button data-dir="down" type="button">▼</button>
+          <button data-dir="right" type="button">▶</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
